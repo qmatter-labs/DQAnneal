@@ -7,6 +7,7 @@ from dwave.system.composites import EmbeddingComposite
 import os
 import json
 import time
+import zipfile
 
 
 class dimod_optimizer_local:
@@ -21,18 +22,21 @@ class dimod_optimizer_local:
                 self.sampler = dimod.SteepestDescentSolver()
             elif optimizer_type == 'RandomSampler':
                 self.sampler = dimod.RandomSampler()
+            elif optimizer_type == 'ExactSolver':
+                self.sampler = dimod.ExactSolver()
             else:
                  raise ValueError(f'unknown optimizer: {optimizer_type}')
         
         def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int) -> None:
+            # bqm = dimod.BinaryQuadraticModel.from_qubo(dwave_qubo)
             sampleset =  self.sampler.sample_qubo(dwave_qubo, 
-                                                  num_reads=num_reads, return_embedding=True)
+                                                  num_reads=num_reads)
             return sampleset, sampleset.first.sample
         
         def sample_ising(self, linear_terms: Dict[int, float],
                           quadratic_terms: Dict[Tuple[int, int], float], num_reads:int) -> None:
             sampleset = self.sampler.sample_ising(linear_terms, quadratic_terms,
-                                                  num_reads=num_reads, return_embedding=True)
+                                                  num_reads=num_reads)
             return sampleset, sampleset.first.sample
 
 
@@ -42,7 +46,7 @@ class dimod_optimizer_cloud(dimod_optimizer_local):
         
             self.sampler = None
             self.DWAVE_API_TOKEN= DWAVE_API_TOKEN
-            
+
 
         def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, min_qubits_needed:int) -> None:
 
@@ -73,16 +77,35 @@ def save_annealing_results(anneal_sampleset: dimod.sampleset.SampleSet,
     if file_save_loc is None:
         file_save_loc = os.getcwd()
 
-    base_name = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.json'
-    file_path = os.path.join(file_save_loc ,
-                                 base_name)
+    # base_name = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.json'
+    # file_path = os.path.join(file_save_loc ,
+    #                              base_name)
 
-    with open(file_path, mode="w") as outfile: 
+    # with open(file_path, mode="w") as outfile: 
+    #     output_data = anneal_sampleset.to_serializable()
+    #     output_data.update(extra_dictionary)
+    #     json.dump(output_data, outfile, indent=6)
+    
+    assert os.path.isdir(file_save_loc), 'save location is not a valid dir'
+
+    base_name_zip  = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.zip'
+    base_name_json = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.json'
+    file_path = os.path.join(file_save_loc ,
+                                 base_name_zip)
+
+    with zipfile.ZipFile(file_path, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zip_file: 
         output_data = anneal_sampleset.to_serializable()
         output_data.update(extra_dictionary)
-        json.dump(output_data, outfile, indent=6)
-    
+        # Dump JSON data
+        dumped_JSON: str = json.dumps(output_data, indent=6)  ## ensure_ascii=False,
+        # Write the JSON data into `data.json` *inside* the ZIP file
+        zip_file.writestr(base_name_json, data=dumped_JSON)
+        # Test integrity of compressed archive
+        zip_file.testzip()
+
     if verbose:
         print(f'saved data at: {file_path}')
 
-    return None
+    return file_path
+
+

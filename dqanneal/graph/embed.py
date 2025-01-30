@@ -1,9 +1,21 @@
 import dimod
 from minorminer import find_embedding
 from dwave import embedding
-from typing import Optional, Dict, Tuple
+from typing import List, Dict, Tuple
 import networkx as nx
 import numpy as np
+from dwave import embedding
+
+def get_problem_graph(dwave_qubo) -> Tuple[nx.Graph,
+                                           Dict[int, List[int]]]:
+
+    source_bqm_qubo = dimod.BinaryQuadraticModel.from_qubo(dwave_qubo)
+    problem_graph = dimod.to_networkx_graph(source_bqm_qubo)
+
+    node_edge_dict = {node: list(problem_graph.neighbors(node)) 
+                      for node in problem_graph.nodes}
+
+    return problem_graph, node_edge_dict
 
 
 def embed_problem_onto_hardware(problem_graph: dimod.BinaryQuadraticModel,
@@ -78,3 +90,16 @@ def define_embedded_ising_problem(linear_dict: Dict[int, float],
                                                                     energy=[puso_value])
     
     return linear_dict_trans, quadratic_dict_trans, unique_idxs, convert_fn_sample
+
+
+def unembed_samples(embedded_sampleset: dimod.sampleset.SampleSet,
+                    embedded_problem: Dict,
+                    source_bqm:dimod.BinaryQuadraticModel) -> dimod.sampleset.SampleSet:
+    """
+    get solution of to original problem from embedded solution!
+    """
+    converted_samples = embedding.unembed_sampleset(embedded_sampleset,
+                                    embedded_problem, 
+                                    source_bqm)
+    
+    return converted_samples, converted_samples.first.sample
