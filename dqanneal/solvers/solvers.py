@@ -72,36 +72,37 @@ def save_annealing_results(anneal_sampleset: dimod.sampleset.SampleSet,
                            file_save_loc:Optional[str]=None, 
                            extra_ending:Optional[str]='',
                            verbose:Optional[bool]=True,
-                           extra_dictionary:Optional[Dict]=dict()):
+                           extra_dictionary:Optional[Dict]=dict(),
+                           zip_data:Optional[Dict]=True):
     
     if file_save_loc is None:
         file_save_loc = os.getcwd()
 
-    # base_name = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.json'
-    # file_path = os.path.join(file_save_loc ,
-    #                              base_name)
-
-    # with open(file_path, mode="w") as outfile: 
-    #     output_data = anneal_sampleset.to_serializable()
-    #     output_data.update(extra_dictionary)
-    #     json.dump(output_data, outfile, indent=6)
-    
     assert os.path.isdir(file_save_loc), 'save location is not a valid dir'
 
     base_name_zip  = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.zip'
     base_name_json = f'{extra_ending}_' + time.strftime("%Y%m%d-%H%M%S") + '.json'
-    file_path = os.path.join(file_save_loc ,
-                                 base_name_zip)
+    if zip_data:
+        file_path = os.path.join(file_save_loc ,
+                                    base_name_zip)
 
-    with zipfile.ZipFile(file_path, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zip_file: 
-        output_data = anneal_sampleset.to_serializable()
-        output_data.update(extra_dictionary)
-        # Dump JSON data
-        dumped_JSON: str = json.dumps(output_data, indent=6)  ## ensure_ascii=False,
-        # Write the JSON data into `data.json` *inside* the ZIP file
-        zip_file.writestr(base_name_json, data=dumped_JSON)
-        # Test integrity of compressed archive
-        zip_file.testzip()
+        with zipfile.ZipFile(file_path, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zip_file: 
+            output_data = anneal_sampleset.to_serializable()
+            output_data.update(extra_dictionary)
+            # Dump JSON data
+            dumped_JSON: str = json.dumps(output_data, indent=6)  ## ensure_ascii=False,
+            # Write the JSON data into `data.json` *inside* the ZIP file
+            zip_file.writestr(base_name_json, data=dumped_JSON)
+            # Test integrity of compressed archive
+            zip_file.testzip()
+    else:
+        file_path = os.path.join(file_save_loc ,
+                                   base_name_json)
+
+        with open(file_path, mode="w") as outfile: 
+            output_data = anneal_sampleset.to_serializable()
+            output_data.update(extra_dictionary)
+            json.dump(output_data, outfile, indent=6)
 
     if verbose:
         print(f'saved data at: {file_path}')
