@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "dqanneal"
+version = "0.0.1"
+description = ""
+authors = ["AlexisRalli <rallilex@hotmail.co.uk>"]
+license = "Apache License 2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+qubovert = "^1.2.5"
+dwave-ocean-sdk = "^8.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
