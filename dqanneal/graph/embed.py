@@ -34,16 +34,16 @@ def embed_problem_onto_hardware(problem_graph: dimod.BinaryQuadraticModel,
 
 def define_embedded_qubo_problem(embedded_problem: Dict[Tuple[int, int], float],
                                  edge_dict_hardware:dict,
-                                 qubovert_qubo_Q: dict):
+                                 qubo_Q: dict):
     """
 
     Args:
         embedded_problem (dict): embedded problem (obtained from embed_problem_onto_hardware function)
         edge_dict (dict): dictionary of edges for each node.
-        qubovert_qubo_Q (dict): Q matrix obtained from qubovert qubo (.Q representation of qubo)
+        qubo_Q (dict): Q dict of indices as keys and value as coefficient.
     
     """
-    trans_qubo = embedding.embed_qubo(qubovert_qubo_Q,
+    trans_qubo = embedding.embed_qubo(qubo_Q,
                                         embedded_problem, 
                                         edge_dict_hardware)
     
@@ -67,7 +67,6 @@ def define_embedded_ising_problem(linear_dict: Dict[int, float],
         quadratic_dict (dict): quadratic terms of ising problem.
         embedded_problem (dict): embedded problem (obtained from embed_problem_onto_hardware function)
         edge_dict (dict): dictionary of edges for each node.
-        qubovert_qubo_Q (dict): Q matrix obtained from qubovert qubo (.Q representation of qubo)
     
     Returns:
         linear_dict_trans (dict): linear terms in ising problem.
