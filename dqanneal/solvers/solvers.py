@@ -27,28 +27,38 @@ class dimod_optimizer_local:
             else:
                  raise ValueError(f'unknown optimizer: {optimizer_type}')
         
-        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int) -> None:
+        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float) -> Tuple[dimod.sampleset.SampleSet,
+                                                                                                                        Dict[int, int]]:
             # bqm = dimod.BinaryQuadraticModel.from_qubo(dwave_qubo)
             sampleset =  self.sampler.sample_qubo(dwave_qubo, 
-                                                  num_reads=num_reads)
+                                                  num_reads=num_reads,
+                                                  chain_strength=chain_strength)
+            
             return sampleset, sampleset.first.sample
         
         def sample_ising(self, linear_terms: Dict[int, float],
-                          quadratic_terms: Dict[Tuple[int, int], float], num_reads:int) -> None:
+                          quadratic_terms: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float) -> Tuple[dimod.sampleset.SampleSet,
+                                                                                                                        Dict[int, int]]:
             sampleset = self.sampler.sample_ising(linear_terms, quadratic_terms,
-                                                  num_reads=num_reads)
+                                                  num_reads=num_reads,
+                                                  chain_strength=chain_strength)
             return sampleset, sampleset.first.sample
 
 
 class dimod_optimizer_cloud(dimod_optimizer_local):
         def __init__(self,
-                     DWAVE_API_TOKEN:str)-> None:
+                     DWAVE_API_TOKEN:str,
+                     reverse_anneal_params: Optional[dict] = dict())-> None:
         
             self.sampler = None
             self.DWAVE_API_TOKEN= DWAVE_API_TOKEN
+            self.reverse_anneal_params = reverse_anneal_params
 
 
-        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, min_qubits_needed:int) -> None:
+        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], 
+                        num_reads:int, min_qubits_needed:int,  
+                        chain_strength: float) -> Tuple[dimod.sampleset.SampleSet,
+                                                                                                                                               Dict[int, int]]:
 
 
             with Client.from_config(token=self.DWAVE_API_TOKEN) as client:
@@ -62,7 +72,11 @@ class dimod_optimizer_cloud(dimod_optimizer_local):
                     self.solver_properties = dwave_solver.properties
 
                     ### do sampling
-                    sampleset = self.sampler.sample_qubo(dwave_qubo, num_reads=num_reads, return_embedding=True, **self.reverse_anneal_params)
+                    sampleset = self.sampler.sample_qubo(dwave_qubo,
+                                                          num_reads=num_reads, 
+                                                          return_embedding=True,
+                                                          chain_strength=chain_strength,
+                                                           **self.reverse_anneal_params)
                 ## note this will close the connection once samples are done!!! (context manager)
                     
             return sampleset, sampleset.first.sample
