@@ -9,22 +9,23 @@ import json
 import time
 import zipfile
 from dwave.embedding.chain_strength import uniform_torque_compensation, scaled
-
+from dwave.samplers import (TabuSampler, SteepestDescentSolver,
+                             RandomSampler, ExactSolver, SimulatedAnnealingSampler)
 
 class dimod_optimizer_local:
         def __init__(self,
                      optimizer_type:Optional[str]='SimulatedAnnealing')-> None:
             
             if optimizer_type == 'SimulatedAnnealing':
-                self.sampler = dimod.SimulatedAnnealingSampler()
+                self.sampler = SimulatedAnnealingSampler()
             elif optimizer_type == 'Tabu':
-                self.sampler = dimod.TabuSampler()
+                self.sampler = TabuSampler()
             elif optimizer_type == 'SteepestDescent':
-                self.sampler = dimod.SteepestDescentSolver()
+                self.sampler = SteepestDescentSolver()
             elif optimizer_type == 'RandomSampler':
-                self.sampler = dimod.RandomSampler()
+                self.sampler = RandomSampler()
             elif optimizer_type == 'ExactSolver':
-                self.sampler = dimod.ExactSolver()
+                self.sampler = ExactSolver()
             else:
                  raise ValueError(f'unknown optimizer: {optimizer_type}')
         
@@ -123,9 +124,6 @@ def save_annealing_results(anneal_sampleset: dimod.sampleset.SampleSet,
         print(f'saved data at: {file_path}')
 
     return file_path
-
-
-
 
 
 def get_chain_strength(source_bqm: dimod.BinaryQuadraticModel, 
