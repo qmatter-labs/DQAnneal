@@ -8,6 +8,7 @@ import os
 import json
 import time
 import zipfile
+from dwave.embedding.chain_strength import uniform_torque_compensation, scaled
 
 
 class dimod_optimizer_local:
@@ -123,4 +124,30 @@ def save_annealing_results(anneal_sampleset: dimod.sampleset.SampleSet,
 
     return file_path
 
+
+
+
+
+def get_chain_strength(source_bqm: dimod.BinaryQuadraticModel, 
+                       prefactor:Optional[float]=1.414, method:Optional[str]='uniform_torque_compensation',
+                       embedded_bqm:Optional[dimod.BinaryQuadraticModel]=None) -> float:
+    """
+     https://arxiv.org/pdf/2007.01730
+    https://dwave-systemdocs.readthedocs.io/en/master/reference/embedding.htm
+    """
+    if method == 'uniform_torque_compensation':
+          chain_strength = scaled(source_bqm, embedding=embedded_bqm,
+                                   prefactor=prefactor)
+    elif method == 'uniform_torque_compensation':
+          chain_strength = uniform_torque_compensation(source_bqm, embedding=embedded_bqm, 
+                                                       prefactor=prefactor)
+    else:
+        raise ValueError(f'unknown method: {method}')
+
+    return chain_strength
+
+
+def Q_dict_to_bqm(dwave_Q: Dict[Tuple[int,int], float]) -> dimod.BinaryQuadraticModel:
+
+    return dimod.BinaryQuadraticModel.from_qubo(dwave_Q)
 

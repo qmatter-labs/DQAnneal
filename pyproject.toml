@@ -7,7 +7,7 @@ license = "Apache License 2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 qubovert = "^1.2.5"
 dwave-ocean-sdk = "^8.0.1"
 dimod = "^0.12.18"
