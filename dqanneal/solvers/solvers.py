@@ -1,6 +1,6 @@
 import dimod 
 from dwave.cloud import Client
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union
 from dwave.system.samplers import DWaveSampler
 # from dwave.samplers import TabuSampler, SteepestDescentSolver
 from dwave.system.composites import EmbeddingComposite
@@ -10,7 +10,7 @@ import time
 import zipfile
 from dwave.embedding.chain_strength import uniform_torque_compensation, scaled
 from dwave.samplers import (TabuSampler, SteepestDescentSolver,
-                             RandomSampler, ExactSolver, SimulatedAnnealingSampler)
+                             RandomSampler, SimulatedAnnealingSampler)
 
 class dimod_optimizer_local:
         def __init__(self,
@@ -25,25 +25,31 @@ class dimod_optimizer_local:
             elif optimizer_type == 'RandomSampler':
                 self.sampler = RandomSampler()
             elif optimizer_type == 'ExactSolver':
-                self.sampler = ExactSolver()
+                self.sampler = dimod.ExactSolver()
             else:
                  raise ValueError(f'unknown optimizer: {optimizer_type}')
-        
-        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float) -> Tuple[dimod.sampleset.SampleSet,
+
+
+        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float,
+                     initial_states:Optional[Union[None, dimod.SampleSet]] = None) -> Tuple[dimod.sampleset.SampleSet,
                                                                                                                         Dict[int, int]]:
             # bqm = dimod.BinaryQuadraticModel.from_qubo(dwave_qubo)
             sampleset =  self.sampler.sample_qubo(dwave_qubo, 
                                                   num_reads=num_reads,
-                                                  chain_strength=chain_strength)
+                                                  chain_strength=chain_strength,
+                                                  initial_states=initial_states
+                                                  )
             
             return sampleset, sampleset.first.sample
         
         def sample_ising(self, linear_terms: Dict[int, float],
-                          quadratic_terms: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float) -> Tuple[dimod.sampleset.SampleSet,
+                          quadratic_terms: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float,
+                          initial_states:Optional[Union[None, dimod.SampleSet]] = None) -> Tuple[dimod.sampleset.SampleSet,
                                                                                                                         Dict[int, int]]:
             sampleset = self.sampler.sample_ising(linear_terms, quadratic_terms,
                                                   num_reads=num_reads,
-                                                  chain_strength=chain_strength)
+                                                  chain_strength=chain_strength,
+                                                  initial_states=initial_states)
             return sampleset, sampleset.first.sample
 
 
@@ -59,7 +65,7 @@ class dimod_optimizer_cloud(dimod_optimizer_local):
 
         def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], 
                         num_reads:int, min_qubits_needed:int,  
-                        chain_strength: float) -> Tuple[dimod.sampleset.SampleSet,
+                        chain_strength: float, initial_states:Optional[Union[None, dimod.SampleSet]] = None) -> Tuple[dimod.sampleset.SampleSet,
                                                                                                                                                Dict[int, int]]:
 
 
@@ -70,14 +76,15 @@ class dimod_optimizer_cloud(dimod_optimizer_local):
                     dwave_solver, n_qubits = max(dwave_solvers, key=lambda x: x[1])
                     assert min_qubits_needed <= n_qubits, 'too many qubits for required problem'
                     
-                    self.sampler = EmbeddingComposite(DWaveSampler(dwave_solver))
+                    sampler = EmbeddingComposite(DWaveSampler(dwave_solver))
                     self.solver_properties = dwave_solver.properties
 
                     ### do sampling
-                    sampleset = self.sampler.sample_qubo(dwave_qubo,
+                    sampleset = sampler.sample_qubo(dwave_qubo,
                                                           num_reads=num_reads, 
                                                           return_embedding=True,
                                                           chain_strength=chain_strength,
+                                                          initial_states = initial_states,
                                                            **self.reverse_anneal_params)
                 ## note this will close the connection once samples are done!!! (context manager)
                     

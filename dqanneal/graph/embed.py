@@ -4,6 +4,7 @@ from dwave import embedding
 from typing import List, Dict, Tuple, Optional
 import networkx as nx
 import numpy as np
+import dwave_networkx as dnx
 
 
 def get_problem_graph(dwave_qubo:Dict[Tuple[int, int], float]) -> Tuple[nx.Graph,
@@ -115,7 +116,7 @@ def unembed_samples(embedded_sampleset: dimod.sampleset.SampleSet,
 
 def build_reverse_annealing_schedule(starting_state: Dict[int, int], 
                                      source_bqm:dimod.BinaryQuadraticModel,
-                                     reverse_schedule: List[List[int]],
+                                     reverse_schedule:  List[int],#List[List[int]],
                                      reinitialize_state:bool):
     """
     
@@ -148,7 +149,7 @@ def build_reverse_annealing_schedule(starting_state: Dict[int, int],
 
 def build_reverse_annealing_schedule_embedding(starting_state_non_embedded:Dict[int, int],
                                                 source_bqm:dimod.BinaryQuadraticModel,
-                                                reverse_schedule: List[List[int]],
+                                                reverse_schedule: List[int],#List[List[int]],
                                                 reinitialize_state:bool,
                                                 embedded_bqm:dimod.BinaryQuadraticModel,
                                                 hardware_graph,
@@ -271,3 +272,91 @@ def create_king_graph(rows: int, cols: int):
     # return G, node_edge_dict, pos
 
     return G, node_edge_dict, pos
+
+
+def get_dwave_graph(graph_type:str, *args, **kwargs):
+    """
+    wrapper for dwave_networkx graph functions. See original fucntions for *args
+    """
+    # https://docs.ocean.dwavesys.com/en/latest/docs_dnx/reference/generators.html
+    # https://docs.ocean.dwavesys.com/en/latest/docs_dnx/reference/generators.html
+
+    assert graph_type in ['pegasus', 'zephyr', 'chimera']
+
+    if graph_type == 'chimera':
+        G = dnx.chimera_graph(*args,**kwargs)
+    elif graph_type == 'pegasus':
+        G = dnx.pegasus_graph(*args,**kwargs)
+    elif graph_type == 'zephyr':
+        G = dnx.zephyr_graph(*args,**kwargs)
+
+    graph_edge_dict = {node: set(G.neighbors(node)) for node in G.nodes}
+    return G, graph_edge_dict
+
+
+def input_state_embedded(starting_state_non_embedded:Dict[int, int],
+                         source_bqm:dimod.BinaryQuadraticModel,
+                         embedded_bqm:dimod.BinaryQuadraticModel,
+                         hardware_graph,
+                         embedded_problem):
+    """
+    """
+
+    assert set(starting_state_non_embedded.keys()) == set(source_bqm.variables), 'starting state does NOT match BQ problem'
+    assert set(starting_state_non_embedded.values()) == {0,1}, 'starting_state is not a valid qubo state'
+
+    EmbeddedStructure_problem = embedding.EmbeddedStructure(hardware_graph.edges(), 
+                                                            embedded_problem)
+
+    ### get energy of this state!
+    E0 = source_bqm.energy(starting_state_non_embedded)
+
+
+    ## Put everything in the correct format
+    initial_state_sampleset = dimod.SampleSet.from_samples(starting_state_non_embedded, 
+                                                        energy=[E0], 
+                                                        vartype=dimod.vartypes.Vartype.BINARY ## <-- can change to SPIN if ising model used
+                                                        )
+    
+    initial_state_embedded = {val: starting_state_non_embedded[key] for key, terms in EmbeddedStructure_problem.items() for val in terms}
+    E0_embedded = embedded_bqm.energy(initial_state_embedded)
+
+    embedded_inital_state_sampleset = dimod.SampleSet.from_samples(initial_state_embedded, 
+                                                        energy=[E0_embedded], 
+                                                        vartype=dimod.vartypes.Vartype.BINARY)
+
+    ## check embedding is correct!
+    checker, _ = unembed_samples(embedded_inital_state_sampleset,
+                                 embedded_problem, 
+                                 source_bqm)
+    assert checker.first.sample == initial_state_sampleset.first.sample, 'mapping not correct'
+    
+    return embedded_inital_state_sampleset
+
+def input_state_non_embedded(initial_state:Dict[int, int],
+                         source_bqm:dimod.BinaryQuadraticModel):
+    """
+    """
+
+    assert set(initial_state.keys()) == set(source_bqm.variables), 'starting state does NOT match BQ problem'
+    assert set(initial_state.values()) == {0,1}, 'starting_state is not a valid qubo state'
+
+    ### get energy of this state!
+    E0 = source_bqm.energy(initial_state)
+
+
+    ## Put everything in the correct format
+    initial_state_sampleset = dimod.SampleSet.from_samples(initial_state, 
+                                                        energy=[E0], 
+                                                        vartype=dimod.vartypes.Vartype.BINARY ## <-- can change to SPIN if ising model used
+                                                        )
+    return initial_state_sampleset
+
+
+def qubo_convert_to_samples(bitstrings:np.array, energies:np.array) -> dimod.SampleSet:
+    """
+    """
+    return  dimod.SampleSet.from_samples(bitstrings, 
+                                        energy=energies, 
+                                        vartype=dimod.vartypes.Vartype.BINARY ## <-- can change to SPIN if ising model used
+                                            )
