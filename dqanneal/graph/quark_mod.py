@@ -87,7 +87,7 @@ def opt_embedding_quark_ising(
     ising_poly = PolyIsing(all_terms)
 
     assert embedding_obj.is_valid(couplings=ising_poly.get_graph().edges,
-                                hwa=hwa), 'embedded problem not correct!'
+                                  hwa=hwa), 'embedded problem not correct!'
 
 
     obj = Objective(ising_poly, name='objective_embedded') 
