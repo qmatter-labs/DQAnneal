@@ -152,7 +152,7 @@ def get_chain_strength(source_bqm: dimod.BinaryQuadraticModel,
     return chain_strength
 
 
-def Q_dict_to_bqm(dwave_Q: Dict[Tuple[int,int], float]) -> dimod.BinaryQuadraticModel:
+def Q_dict_to_bqm(dwave_Q: Dict[Tuple[int,int], float], offset=0) -> dimod.BinaryQuadraticModel:
 
-    return dimod.BinaryQuadraticModel.from_qubo(dwave_Q)
+    return dimod.BinaryQuadraticModel.from_qubo(dwave_Q, offset=offset)
 

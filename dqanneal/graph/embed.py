@@ -5,8 +5,6 @@ from typing import List, Dict, Tuple, Optional, Union
 import networkx as nx
 import numpy as np
 import dwave_networkx as dnx
-from quark import HardwareAdjacency, Embedding, PolyIsing, Objective # VariableMapping, Polynomial, PolyBinary
-from oeip.get import get_optimal_embedded_ising_objective
 
 
 def get_problem_graph(dwave_qubo:Union[Dict[Tuple[int, int], float], 
@@ -371,54 +369,5 @@ def qubo_convert_to_samples(bitstrings:np.array, energies:np.array) -> dimod.Sam
                                             )
 
 
-def opt_embedding_quark_ising(
-                  embedded_problem: Dict[int, List[int]],
-                  hardware_graph:   nx.Graph,
-                  linear_terms:     Dict[int, float],
-                  quadratic_terms:  Dict[Tuple[int, int], float],
-                  constant_offset:Optional[float] = 0
-                  ) -> Tuple[Objective, Objective]:
-    """
-    Given an embedded problem, choose chain strengths s.t. embedding 
-    is correct (better than dwaves current chain strength choice!)
 
-    Note embedded_problem must be defined for ISING problem, not QUBO!
-    
-    Returns:
-        obj (Objective): PolyIsing problem function 
-        opt_embedded_ising (Objective): embedded PolyIsing problem function
-        opt_bqm_ising_emb (dimod.BinaryQuadraticModel): embedded dwave problem with correct chain strengths!
-
-    Note each output object can be solved using ScipModel in quark!
-
-        from quark import ScipModel
-        model = ScipModel.get_from_objective(obj)
-        solution = model.solve()
-        soln_dict = dict(solution.items())
-        print(solution.solving_status, solution.objective_value, soln_dict)
-
-    ALSO BQM output can be converted to binary model by opt_bqm_ising_emb.to_qubo() (same with the polynomials
-    in each of the Objective outputs: obj.polynomial.to_binary()  )
-
-    """
-    
-    hwa = HardwareAdjacency(hardware_graph.edges, "hwa")
-    embedding_obj = Embedding.get_from_hwa(embedded_problem, hwa)
-    assert embedding_obj.is_valid(), 'embedding incorrect'
-
-    all_terms = {(key, ): val for key, val in linear_terms.items()}
-    all_terms.update(quadratic_terms)
-    if abs(constant_offset)>0:
-        all_terms.update({(): constant_offset})    
-
-    ising_poly = PolyIsing(all_terms)
-    obj = Objective(ising_poly, name='test') 
-    
-    opt_embedded_ising = get_optimal_embedded_ising_objective(obj,
-                                                              embedding_obj)
-    opt_bqm_ising_emb = dimod.BinaryQuadraticModel.from_ising({key[0]: val for key, val in opt_embedded_ising.polynomial.linear.items()},
-                                                    dict(opt_embedded_ising.polynomial.quadratic.items()),
-                                                    opt_embedded_ising.polynomial.offset)
-
-    return obj, opt_embedded_ising, opt_bqm_ising_emb
 
