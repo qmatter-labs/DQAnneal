@@ -370,4 +370,18 @@ def qubo_convert_to_samples(bitstrings:np.array, energies:np.array) -> dimod.Sam
 
 
 
+def check_embedding(embedded_problem : Dict[int, List[int]],
+                    original_problem: Union[dimod.BinaryQuadraticModel, nx.Graph],
+                    hardware_graph: nx.Graph) -> bool:
+    """
+    Given an embedding check if it is valid!
+    """
+     
+    if isinstance(original_problem, dimod.BinaryQuadraticModel):
+        original_prob = dimod.to_networkx_graph(original_problem)
+    else:
+        original_prob = original_problem
 
+    return embedding.is_valid_embedding(embedded_problem, 
+                                        original_prob,
+                                        hardware_graph)
