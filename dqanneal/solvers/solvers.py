@@ -30,7 +30,7 @@ class dimod_optimizer_local:
                  raise ValueError(f'unknown optimizer: {optimizer_type}')
 
 
-        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float,
+        def sample_qubo(self, dwave_qubo: Dict[Tuple[int, int], float], num_reads:int, chain_strength:Optional[Union[None, float]] = None,
                      initial_states:Optional[Union[None, dimod.SampleSet]] = None) -> Tuple[dimod.sampleset.SampleSet,
                                                                                                                         Dict[int, int]]:
             # bqm = dimod.BinaryQuadraticModel.from_qubo(dwave_qubo)
@@ -43,7 +43,7 @@ class dimod_optimizer_local:
             return sampleset, sampleset.first.sample
         
         def sample_ising(self, linear_terms: Dict[int, float],
-                          quadratic_terms: Dict[Tuple[int, int], float], num_reads:int, chain_strength: float,
+                          quadratic_terms: Dict[Tuple[int, int], float], num_reads:int, chain_strength:Optional[Union[None, float]] = None,
                           initial_states:Optional[Union[None, dimod.SampleSet]] = None) -> Tuple[dimod.sampleset.SampleSet,
                                                                                                                         Dict[int, int]]:
             sampleset = self.sampler.sample_ising(linear_terms, quadratic_terms,
