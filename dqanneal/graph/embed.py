@@ -13,9 +13,8 @@ def get_problem_graph(dwave_qubo:Union[Dict[Tuple[int, int], float],
     """
     Args:
 
-    Note to get edge weights use:
+    Note to get edge weights use: nx.get_edge_attributes(problem_graph, "bias")
 
-    nx.get_edge_attributes(problem_graph, "bias")
     """
     if isinstance(dwave_qubo, dict):
         source_bqm_qubo = dimod.BinaryQuadraticModel.from_qubo(dwave_qubo)
@@ -369,7 +368,6 @@ def qubo_convert_to_samples(bitstrings:np.array, energies:np.array) -> dimod.Sam
                                             )
 
 
-
 def check_embedding(embedded_problem : Dict[int, List[int]],
                     original_problem: Union[dimod.BinaryQuadraticModel, nx.Graph],
                     hardware_graph: nx.Graph) -> bool:
@@ -385,3 +383,29 @@ def check_embedding(embedded_problem : Dict[int, List[int]],
     return embedding.is_valid_embedding(embedded_problem, 
                                         original_prob,
                                         hardware_graph)
+
+
+def get_bqm_from_linear_quadratic(linear:Dict[int, float], 
+                                    quadratic:Dict[Tuple[int, int], float],
+                                    var_type:str,
+                                    constant_shift:Optional[float]=0) -> dimod.BinaryQuadraticModel:
+    """
+    Get Binary Quadratic Model from input dictionaries. 
+
+    Args:
+        linear (dict):    dictionary of single bool/spin index and corresponding coefficient
+        quadratic (dict): dictionary of two bool/spin indices and corresponding coefficient
+        var_type (str):   type of variable (spin / bool)
+        constant_shift (float): constant offset amount (identity term)
+    Returns:
+        bqm (BinaryQuadraticModel): quadratic model
+    """
+    var_type = var_type.lower()
+    assert var_type in ['bool', 'spin']
+
+    if var_type == 'bool':
+        bqm = dimod.BinaryQuadraticModel(linear, quadratic, constant_shift,dimod.Vartype.BINARY)
+    else:
+        bqm = dimod.BinaryQuadraticModel(linear, quadratic, constant_shift,dimod.Vartype.SPIN)
+    return bqm
+
